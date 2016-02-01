@@ -6,7 +6,7 @@ library(doMC)
 library(caret)
 
 #
-remove0cols <- T
+remove0cols <- F
 set.seed(123456)
 registerDoMC(cores = 6)
 #
@@ -138,7 +138,7 @@ if(remove0cols){
 #retrait des colonnes ayant essentiellement des 0
   n <- length(removecols)
   counts <- apply(total.wide, 2, sum)
-  cols2remove <- names(counts[counts <= 10])
+  cols2remove <- names(counts[counts <= 20])
   n2 <- length(cols2remove)
   cat(n2, "columns removed\n")
   removecols <- setdiff(cols2remove, "fault_severity")

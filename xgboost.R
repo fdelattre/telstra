@@ -51,9 +51,9 @@ if (genererSubmission) {
   
   output.xgboost <- data.frame(
     id = test$id,
-    predict_0 = pred.mat[,1],
-    predict_1 = pred.mat[,2],
-    predict_2 = pred.mat[,3]
+    predict_0 = pred.xgboost[,1],
+    predict_1 = pred.xgboost[,2],
+    predict_2 = pred.xgboost[,3]
   )
   write.csv(output.xgboost, paste(sep = "-", format(Sys.time(), "%Y%m%d.%H%M"), "submission.csv"), row.names = F, quote = F)
 }
