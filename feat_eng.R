@@ -1,0 +1,47 @@
+total.wide[,":="(
+  r5e11 = r5*e11,
+  r2e12 = r2*e12,
+  r9e19 = r9*e19,
+  r8e19 = r8*e19,
+  r5e19 = r5*e19,
+  r3e19 = r3*e19,
+  r2e19 = r2*e19,
+  r5e20 = r5*e20,
+  r7e21 = r7*e21,
+  r8e21 = r8*e21,
+  r2e53 = r2*e53,
+  e25r2 = e25*r2,
+  e25r8 = e25*r8,
+  e30r2 = e30*r2,
+  e30r3 = e30*r3,
+  e30r8 = e30*r8,
+  e30r9 = e30*r9,
+  
+  s4e10 = s4*e10,
+  s5e10 = s5*e10,
+  s4e22 = s4*e22,
+  s4e23 = s4*e23,
+  s5e54 = s5*e54,
+  s4e42 = s4*e42,
+  s4e43 = s4*e43,
+  s4e44 = s4*e44,
+  s4e45 = s4*e45,
+  
+  r8f82 = r8 * log_feature.1_length_f82,
+  r8f203 = r8 * log_feature.1_length_f203,
+  r8f71 = r8 * log_feature.1_length_f71,
+  r8f193 = r8 * log_feature.1_length_f193,
+  r8f80 = r8 * log_feature.1_length_f80,
+  r2f193 = r2 * log_feature.1_length_f193,
+  r4f345 = r4*log_feature.1_length_f193,
+  
+  f202r8 = r8 * log_feature.1_length_f202,
+  f202r2 = r2 * log_feature.1_length_f202,
+  
+  f202r8vol = r8 * log_feature.1_length_f202 * volume_sum_f202,
+  f202r2vol = r2 * log_feature.1_length_f202 * volume_sum_f202,
+  
+  f202f81 = log_feature.1_length_f202*log_feature.1_length_f81,
+  f202f81vol = volume_sum_f202 + volume_sum_f81,
+  f202f81volmul = volume_sum_f202 * volume_sum_f81
+)]
