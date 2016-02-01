@@ -31,9 +31,9 @@ notify_android(
 pred.svm <- predict(svm_model, train.set.mat, type = "prob")
 output.rf <- data.frame(
   id = test$id,
-  predict_0 = pred[,1],
-  predict_1 = pred[,2],
-  predict_2 = pred[,3]
+  predict_0 = pred.svm[,1],
+  predict_1 = pred.svm[,2],
+  predict_2 = pred.svm[,3]
 )
 
 
