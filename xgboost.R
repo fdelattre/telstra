@@ -30,7 +30,7 @@ xgboost.first <- xgb.cv(
 )
 
 notify_android(
-  event = "xgboost cross validation finished",
+  event = "Xgboost cross validation finished",
   msg = paste("Minimum CV mlogloss : ", min(xgboost.first$test.mlogloss.mean))
 )
 cat("Best CV mlogloss : ", min(xgboost.first$test.mlogloss.mean),"\n")
