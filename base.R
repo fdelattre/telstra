@@ -3,6 +3,7 @@ library(magrittr)
 library(stringr)
 library(ggplot2)
 library(doMC)
+library(caret)
 
 #
 remove0cols <- T
@@ -110,31 +111,43 @@ total.wide[,":="(
   f202f81 = log_feature.1_length_f202*log_feature.1_length_f81,
   f202f311 = log_feature.1_length_f202*log_feature.1_length_f311,
   f202f81vol = volume_sum_f202 + volume_sum_f81,
-  f202f311vol = volume_sum_f202 + volume_sum_f311
-)]
+  f202f311vol = volume_sum_f202 + volume_sum_f311,
+  
+  som_vol_feat = volume_sum_f82 + volume_sum_f203 + volume_sum_f71 + volume_sum_f193 + volume_sum_f80,
+  xor_feat = as.numeric(log_feature.1_length_f82 | log_feature.1_length_f203 | log_feature.1_length_f71 | log_feature.1_length_f193 | log_feature.1_length_f80),
+  
+  xore34r2 = as.numeric(e34 | r2),
+  xore35r2 = as.numeric(e35 | r2),
+  xore54r8 = as.numeric(e54 | r8),
+  xore11r8 = as.numeric(e11 | r8),
+  xore10r8 = as.numeric(e10 | r8))]
 
 
 
 ######################################################################################
 
-train.wide <- total.wide[fault_severity != -1,-"id", with = FALSE]
-test.wide <- total.wide[fault_severity == -1,-"id", with = FALSE]
-
-keepcols <- names(train.wide)
+removecols <- names(total.wide)
 if(remove0cols){
+  
 #retrait des colonnes ayant essentiellement des 0
-  n <- length(keepcols)
-counts <- apply(total.wide, 2, sum)
-keepcols <- names(counts[counts > 5])
-n2 <- length(keepcols)
-cat(n-n2, "columns removed\n")
+  n <- length(removecols)
+  counts <- apply(total.wide, 2, sum)
+  cols2remove <- names(counts[counts <= 10])
+  n2 <- length(cols2remove)
+  cat(n2, "columns removed\n")
+  removecols <- setdiff(cols2remove, "fault_severity")
+  train.wide <- total.wide[fault_severity != -1,-c(removecols, "id"), with = FALSE]
+  test.wide <- total.wide[fault_severity == -1,-c(removecols, "id"), with = FALSE]
+} else{
+  train.wide <- total.wide[fault_severity != -1,-"id", with = FALSE]
+  test.wide <- total.wide[fault_severity == -1,-"id", with = FALSE]
 }
 
 # write files with train and test
-write.csv(train.wide, paste(sep = "-", "train.csv"), row.names = F, quote = F)
-write.csv(test.wide[,.SD, .SDcols = -"fault_severity"], paste(sep = "-", "test.csv"), row.names = F, quote = F)
+#write.csv(train.wide, paste(sep = "-", "train.csv"), row.names = F, quote = F)
+#write.csv(test.wide[,.SD, .SDcols = -"fault_severity"], paste(sep = "-", "test.csv"), row.names = F, quote = F)
 
 train.set.mat <-
-  model.matrix(fault_severity ~  .,data = train.wide[,, .SDcols = keepcols])
+  model.matrix(fault_severity ~  .,data = train.wide)
 test.set.mat <-
-  model.matrix(fault_severity ~ . ,data = test.wide[,, .SDcols = keepcols])
+  model.matrix(fault_severity ~ . ,data = test.wide)

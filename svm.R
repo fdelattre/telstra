@@ -1,7 +1,6 @@
 # svm
-library(caret)
 
-#source('~/datascience/challenges/telstra/base.R')
+source('~/datascience/challenges/telstra/base.R')
 
 x <- train.set.mat
 y <- as.factor(paste0("X",train.wide$fault_severity))
@@ -14,8 +13,8 @@ tr <- trainControl(
   allowParallel = T)
 
 tgr <- expand.grid(
-  C = seq(30, 50, by = 5),
-  sigma = 1e-5
+  C = seq(40, 60, by = 4),
+  sigma = c(0.0001, 0.001, 0.01, 0.1)
 )
 
 svm_model <- caret::train(x, y, 

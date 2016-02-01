@@ -41,7 +41,7 @@ xgboost.model <- xgboost(
   verbose = verboseXgboost
 )
 imp <- xgb.importance(model = xgboost.model)
-bestcols <- names(train.wide)[as.numeric(imp$Feature)]
+bestcols <- names(train.wide)[as.numeric(imp$Feature)+1]
 
 if (genererSubmission) {
   

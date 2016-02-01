@@ -41,11 +41,18 @@ ggplot(data = log_feature[train][log_feature%in%significant_log_feature])+
   geom_bar(aes(x = log_feature, fill = factor(fault_present)))
 
 log_feature[train][, uniqueN(id), by = .(log_feature, location)][order(V1, decreasing = T)]
-log_feature[train][, uniqueN(id), by = location][order(V1, decreasing = T)]
+log_feature[train][fault_severity == 0][, uniqueN(id), by = .(log_feature)][order(V1, decreasing = T)]
+log_feature[train][fault_severity == 1][, uniqueN(id), by = .(log_feature)][order(V1, decreasing = T)]
+log_feature[train][fault_severity == 2][, uniqueN(id), by = .(log_feature)][order(V1, decreasing = T)]
+
+log_feature[train][fault_severity == 2][, uniqueN(id), by = location][order(V1, decreasing = T)]
 
 ggplot(data = event_type[train])+
-  geom_bar(aes(x = event_type, fill = factor(fault_present)))
+  geom_bar(aes(x = event_type, fill = factor(fault_severity)))
 event_type[train][, uniqueN(id), by = .(event_type, location)][order(V1, decreasing = T)]
+most_freq_et_c0 <- event_type[train][fault_severity == 0][, uniqueN(id), by = .(event_type)][order(V1, decreasing = T)][1:10, event_type]
+most_freq_et_c1 <- event_type[train][fault_severity == 1][, uniqueN(id), by = .(event_type)][order(V1, decreasing = T)][1:10, event_type]
+most_freq_et_c2 <- event_type[train][fault_severity == 2][, uniqueN(id), by = .(event_type)][order(V1, decreasing = T)][1:10, event_type]
 
 
 ggplot(data = resource_type[train])+
