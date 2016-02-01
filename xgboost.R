@@ -1,4 +1,4 @@
-#source('~/datascience/challenges/telstra/base.R')
+source('~/datascience/challenges/telstra/base.R')
 
 library(xgboost)
 ######################################################################################
@@ -16,6 +16,7 @@ xgparams.tree <- list(
   objective = "multi:softprob",
   num_class = 3,
   colsample_bytree = 0.4,
+  max.depth = 10,
   eta = 0.05
 )
 

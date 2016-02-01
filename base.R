@@ -58,8 +58,6 @@ joined_total <- resource_type[event_type][severity_type][total]
 t5 <- joined_total[,etrtcomb := paste(resource_type, event_type, sep = "x")][, .(loc_etrtcomb = uniqueN(etrtcomb)), keyby=location]
 t6 <- joined_total[,etstcomb := paste(severity_type, event_type, sep = "x")][, .(loc_etstcomb = uniqueN(etstcomb)), keyby=location]
 t7 <- joined_total[,rtstcomb := paste(severity_type, resource_type, sep = "x")][, .(loc_rtstcomb = uniqueN(rtstcomb)), keyby=location]
-# t8 <- log_feature[joined_total, allow.cartesian=TRUE][,lfetcomb := paste(log_feature, event_type, sep="x")][,.(loc_lfetcomb = uniqueN(lfetcomb)), keyby=location]
-# t9 <- joined_total[,rtetstcomb := paste(severity_type, event_type, resource_type, sep = "x")][, .(loc_rtetstcomb = uniqueN(rtetstcomb)), keyby=location]
 
 location_info_total <- t1[t2][t3][t4][t5][t6][t7]
 
@@ -96,11 +94,19 @@ total.wide <-
 
 total.wide[,":="(
   
+  r8r2 = r8*r2,
+  r8r6 = r8*r6,
+  
   r2e34 = r2 * e34,
   r2e35 = r2 * e35,
   r2e12 = r2 * e12,
   e6r4 = r4 * e6,
   e6r3 = r3 * e6,
+  e15r8 = r8*e15,
+  xore15r8 = as.numeric(r8 | e15),
+  e11r8 = r8*e11,
+  e11r6 = r6*e11,
+  xore11r6 = as.numeric(r6 | e11),
   
   f202r8 = r8 * log_feature.1_length_f202,
   f202r2 = r2 * log_feature.1_length_f202,
