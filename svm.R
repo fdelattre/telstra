@@ -28,7 +28,7 @@ notify_android(
   event = "SVM Model finished", 
   msg = paste("Minimal CV mlogloss : ", min(svm_model$results$mlogloss)))
 
-pred.svm <- predict(svm_model, train.set.mat, type = "prob")
+pred.svm <- predict(svm_model, test.set.mat, type = "prob")
 output.rf <- data.frame(
   id = test$id,
   predict_0 = pred.svm[,1],

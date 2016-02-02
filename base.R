@@ -149,9 +149,12 @@ if(remove0cols){
   test.wide <- total.wide[fault_severity == -1,-"id", with = FALSE]
 }
 
+
 # write files with train and test
-#write.csv(train.wide, paste(sep = "-", "train.csv"), row.names = F, quote = F)
-#write.csv(test.wide[,.SD, .SDcols = -"fault_severity"], paste(sep = "-", "test.csv"), row.names = F, quote = F)
+writeLines("Writing train.csv and test.csv...")
+write.csv(train.wide, paste(sep = "-", "train.csv"), row.names = F, quote = F)
+write.csv(test.wide[,.SD, .SDcols = -"fault_severity"], paste(sep = "-", "test.csv"), row.names = F, quote = F)
+writeLines("...done")
 
 train.set.mat <-
   model.matrix(fault_severity ~  .,data = train.wide)
