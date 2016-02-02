@@ -7,8 +7,7 @@ library(caret)
 
 #
 remove0cols <- F
-set.seed(123456)
-registerDoMC(cores = 6)
+writeFiles <- F
 #
 
 source('~/datascience/challenges/telstra/utils.R')
@@ -27,20 +26,26 @@ severity_type <-
   fread("~/datascience/challenges/telstra/data/severity_type.csv") %>% setkey(id)
 
 
-log_feature[, log_feature := makeReadable(log_feature)]
+log_feature[, ":="(numlf = makeNumeric(log_feature), log_feature = makeReadable(log_feature))]
 event_type[, ":="(numet = makeNumeric(event_type), event_type = makeReadable(event_type))]
-resource_type[, resource_type := makeReadable(resource_type)]
-severity_type[, severity_type := makeReadable(severity_type)]
+resource_type[, ":="(numrt = makeNumeric(resource_type), resource_type = makeReadable(resource_type))]
+severity_type[, ":="(numst = makeNumeric(severity_type), severity_type = makeReadable(severity_type))]
+
+
 train[, ":="(numloc = makeNumeric(location),
              location = makeReadable(location))]
 test[, ":="(numloc = makeNumeric(location),
             location = makeReadable(location), fault_severity = -1)]
 
-total <- rbind(train, test)
+total <- rbind(train, test)%>%setkey(id)
+
+
 
 t1 <- log_feature[total][,.(
   loc_nid = uniqueN(id),
-  loc_nlf = uniqueN(log_feature), 
+  loc_nlf = uniqueN(log_feature),
+  loc_sum_numlf = sum(numlf),
+  loc_avg_numlf = sum(numlf),
   loc_sumvol = sum(volume),
   loc_avgvol = mean(volume),
   loc_sdvol = ifelse(is.na(sd(volume)), 0, sd(volume)),
@@ -54,6 +59,18 @@ t3 <- event_type[total][, .(loc_net = uniqueN(event_type), loc_avg_et = mean(num
 t4 <- severity_type[total][, .(loc_nst = uniqueN(severity_type)), keyby=location]
 
 joined_total <- resource_type[event_type][severity_type][total]
+
+# Volume et nb de log features par event_type
+event_type_info <- log_feature[event_type, allow.cartesian=TRUE][, .(avgvolet = mean(volume), nblfet = uniqueN(log_feature)), keyby = event_type]
+joined_total <- merge(joined_total, event_type_info, by = "event_type")
+t8 <- joined_total[,.(avgvolet = sum(avgvolet), nblfet = sum(nblfet)), keyby = id]
+
+# Volume et nb de log features par resource_type
+resource_type_info <- log_feature[resource_type][, .(avgvolrt = mean(volume), nblfrt = uniqueN(log_feature)), keyby = resource_type]
+joined_total <- merge(joined_total, resource_type_info, by = "resource_type")
+t9 <- joined_total[,.(avgvolrt = sum(avgvolrt), nblfrt = sum(nblfrt)), keyby = id]
+
+
 # nombres de combinaisons différentes de resource_type/event_type par location
 t5 <- joined_total[,etrtcomb := paste(resource_type, event_type, sep = "x")][, .(loc_etrtcomb = uniqueN(etrtcomb)), keyby=location]
 t6 <- joined_total[,etstcomb := paste(severity_type, event_type, sep = "x")][, .(loc_etstcomb = uniqueN(etstcomb)), keyby=location]
@@ -61,10 +78,8 @@ t7 <- joined_total[,rtstcomb := paste(severity_type, resource_type, sep = "x")][
 
 location_info_total <- t1[t2][t3][t4][t5][t6][t7]
 
-total <- merge(total, location_info_total, by = "location")[,":="(location=NULL)]
+total <- total[,":="(location=NULL)]
 setkeyv(total, c("id", "fault_severity"))
-
-# total_loc <-  dcast(total, id + fault_severity ~ location, value.var = "location", fun = length)
 
 ####################################
 
@@ -120,7 +135,18 @@ total.wide[,":="(
   f202f311vol = volume_sum_f202 + volume_sum_f311,
   
   som_vol_feat = volume_sum_f82 + volume_sum_f203 + volume_sum_f71 + volume_sum_f193 + volume_sum_f80,
+  som_vol_feat_c0 = volume_sum_f313 + volume_sum_f233 + volume_sum_f315,
+  som_vol_feat_c1 = volume_sum_f82 + volume_sum_f203 + volume_sum_f170,
+  som_vol_feat_c2 = volume_sum_f71 + volume_sum_f193 + volume_sum_f80,
+  
   xor_feat = as.numeric(log_feature.1_length_f82 | log_feature.1_length_f203 | log_feature.1_length_f71 | log_feature.1_length_f193 | log_feature.1_length_f80),
+  xor_feat_c0 = as.numeric(log_feature.1_length_f313 | log_feature.1_length_f233 | log_feature.1_length_f315),
+  xor_feat_c1 = as.numeric(log_feature.1_length_f82 | log_feature.1_length_f203 | log_feature.1_length_f170),
+  xor_feat_c2 = as.numeric(log_feature.1_length_f71 | log_feature.1_length_f193 | log_feature.1_length_f80),
+  
+  and_feat_c0 = as.numeric(log_feature.1_length_f313 & log_feature.1_length_f233 & log_feature.1_length_f315),
+  and_feat_c1 = as.numeric(log_feature.1_length_f82 & log_feature.1_length_f203 & log_feature.1_length_f170),
+  and_feat_c2 = as.numeric(log_feature.1_length_f71 & log_feature.1_length_f193 & log_feature.1_length_f80),
   
   xore34r2 = as.numeric(e34 | r2),
   xore35r2 = as.numeric(e35 | r2),
@@ -138,9 +164,9 @@ if(remove0cols){
 #retrait des colonnes ayant essentiellement des 0
   n <- length(removecols)
   counts <- apply(total.wide, 2, sum)
-  cols2remove <- names(counts[counts <= 20])
+  cols2remove <- names(counts[counts <= 2])
   n2 <- length(cols2remove)
-  cat(n2, "columns removed\n")
+  writeLines(paste(n2, "columns removed", sep = " "))
   removecols <- setdiff(cols2remove, "fault_severity")
   train.wide <- total.wide[fault_severity != -1,-c(removecols, "id"), with = FALSE]
   test.wide <- total.wide[fault_severity == -1,-c(removecols, "id"), with = FALSE]
@@ -151,12 +177,22 @@ if(remove0cols){
 
 
 # write files with train and test
-writeLines("Writing train.csv and test.csv...")
-write.csv(train.wide, paste(sep = "-", "train.csv"), row.names = F, quote = F)
-write.csv(test.wide[,.SD, .SDcols = -"fault_severity"], paste(sep = "-", "test.csv"), row.names = F, quote = F)
-writeLines("...done")
+if(writeFiles){
+  writeLines("Writing train.csv and test.csv...")
+  write.csv(train.wide, paste(sep = "-", "train.csv"), row.names = F, quote = F)
+  write.csv(test.wide[,.SD, .SDcols = -"fault_severity"], paste(sep = "-", "test.csv"), row.names = F, quote = F)
+  writeLines("...done")}
 
-train.set.mat <-
-  model.matrix(fault_severity ~  .,data = train.wide)
-test.set.mat <-
-  model.matrix(fault_severity ~ . ,data = test.wide)
+xtrain <- model.matrix(fault_severity ~  .,data = train.wide)
+ytrain <- train.wide$fault_severity
+
+xtest <-  model.matrix(fault_severity ~ . ,data = test.wide)
+test.id <- test$id
+
+
+
+
+#clean up
+writeLines("Cleaning up...")
+
+#rm(list=setdiff(ls(),c("xtrain", "ytrain", "xtest", "test.id") ))

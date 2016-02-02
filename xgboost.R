@@ -1,22 +1,25 @@
 source('~/datascience/challenges/telstra/base.R')
+source('~/datascience/challenges/telstra/utils.R')
 
 library(xgboost)
 ######################################################################################
 # XGBOOST TREE
 ######################################################################################
+set.seed(123456)
 verboseXgboost <- F
 genererSubmission <- F
+notifyAndroid <- F
 cat("Starting xgboost....\n")
 dtrain <-
-  xgb.DMatrix(data = train.set.mat, label = train.wide$fault_severity)
+  xgb.DMatrix(data = xtrain, label = ytrain)
 
 registerDoMC(cores = 6)
 
 xgparams.tree <- list(
   objective = "multi:softprob",
   num_class = 3,
-  colsample_bytree = 0.4,
-  max.depth = 10,
+  colsample_bytree = 0.3,
+  max.depth = 8,
   eta = 0.05
 )
 
@@ -30,11 +33,14 @@ xgboost.first <- xgb.cv(
   print.every.n = 200
 )
 
-notify_android(
-  event = "Xgboost cross validation finished",
-  msg = paste("Minimum CV mlogloss : ", min(xgboost.first$test.mlogloss.mean))
-)
 cat("Best CV mlogloss : ", min(xgboost.first$test.mlogloss.mean),"\n")
+if(notifyAndroid <- F){
+  notify_android(
+    event = "Xgboost cross validation finished",
+    msg = paste("Minimum CV mlogloss : ", min(xgboost.first$test.mlogloss.mean))
+  )
+}
+
 xgboost.model <- xgboost(
   data = dtrain,
   params = xgparams.tree,
@@ -47,10 +53,10 @@ bestcols <- names(train.wide)[as.numeric(imp$Feature)+1]
 if (genererSubmission) {
   
   cat("Generating Submission...\n")
-  pred.xgboost <- matrix(xgboost::predict(xgboost.model, test.set.mat), ncol = 3, byrow = T)
+  pred.xgboost <- matrix(xgboost::predict(xgboost.model, xtest), ncol = 3, byrow = T)
   
   output.xgboost <- data.frame(
-    id = test$id,
+    id = test.id,
     predict_0 = pred.xgboost[,1],
     predict_1 = pred.xgboost[,2],
     predict_2 = pred.xgboost[,3]

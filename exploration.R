@@ -113,6 +113,9 @@ ggplot(data = rt_lf_c1)+
 ggplot(data = rt_lf_c2)+
   geom_raster(aes(x=event_type, y=log_feature, fill=V1))
 
+# quel volume par event_type ?
+log_feature[event_type, allow.cartesian=TRUE][train][fault_severity == 0][, .(avgvolet = mean(volume), nblfet = uniqueN(log_feature)), by = event_type]
+
 # combinaison d'event et de severity
 et_sv_all <- severity_type[event_type][train][,uniqueN(id), by = .(event_type, severity_type, fault_severity)]
 
