@@ -34,6 +34,8 @@ total <- rbind(train, test)%>%setkey(id)
 joined_train <- log_feature[resource_type][event_type, allow.cartesian = TRUE][severity_type][train]
 joined_test <- log_feature[resource_type][event_type, allow.cartesian = TRUE][severity_type][test]
 
+
+# Log_features
 significant_log_feature <- log_feature[train][,.N, by = log_feature][N > 100, log_feature]
 
 
@@ -44,9 +46,10 @@ log_feature[train][, uniqueN(id), by = .(log_feature, location)][order(V1, decre
 log_feature[train][fault_severity == 0][, uniqueN(id), by = .(log_feature)][order(V1, decreasing = T)]
 log_feature[train][fault_severity == 1][, uniqueN(id), by = .(log_feature)][order(V1, decreasing = T)]
 log_feature[train][fault_severity == 2][, uniqueN(id), by = .(log_feature)][order(V1, decreasing = T)]
-
 log_feature[train][fault_severity == 2][, uniqueN(id), by = location][order(V1, decreasing = T)]
 
+
+# Event_types
 ggplot(data = event_type[train])+
   geom_bar(aes(x = event_type, fill = factor(fault_severity)))
 event_type[train][, uniqueN(id), by = .(event_type, location)][order(V1, decreasing = T)]
@@ -54,7 +57,7 @@ most_freq_et_c0 <- event_type[train][fault_severity == 0][, uniqueN(id), by = .(
 most_freq_et_c1 <- event_type[train][fault_severity == 1][, uniqueN(id), by = .(event_type)][order(V1, decreasing = T)][1:10, event_type]
 most_freq_et_c2 <- event_type[train][fault_severity == 2][, uniqueN(id), by = .(event_type)][order(V1, decreasing = T)][1:10, event_type]
 
-
+# Resources_types
 ggplot(data = resource_type[train])+
   geom_bar(aes(x = resource_type, fill = factor(fault_severity)))
 resource_type[train][, uniqueN(id), by = .(resource_type, location)][order(V1, decreasing = T)]
@@ -91,7 +94,7 @@ res_lf_c2 <- log_feature[resource_type][train][fault_severity == 2][,.(c2 =uniqu
 temp <- merge(merge(res_lf_c0, res_lf_c1, by=c("resource_type", "log_feature"), all = T), res_lf_c2,  by=c("resource_type", "log_feature"), all = T)
 
 ggplot(data = res_lf_c0)+
-  geom_raster(aes(x=resource_type, y=log_feature, fill=V1))
+  geom_raster(aes(x=resource_type, y=log_feature, fill=c0))
 ggplot(data = res_lf_c1)+
   geom_raster(aes(x=resource_type, y=log_feature, fill=V1))
 ggplot(data = res_lf_c2)+
@@ -171,7 +174,7 @@ ggplot(data = rt_loc_c0)+
 ggplot(data = rt_loc_c1)+
   geom_raster(aes(x=resource_type, y=location, fill=V1))
 
-ggplot(data = rt_loc_c2)+
+
 
 
 # nombre de resources par location
@@ -194,6 +197,27 @@ ggplot(data = event_type[train])+
 ggplot(data = train)+
   geom_bar(aes(x = numloc, fill = as.factor(fault_severity)))
 
+event_type_info <- log_feature[event_type, allow.cartesian=TRUE][train][, .(avgvolet = mean(volume), nblfet = uniqueN(log_feature)), by = .(event_type, fault_severity)]
+event_type_info0 <- log_feature[event_type, allow.cartesian=TRUE][train][fault_severity == 0][, .(avgvolet = mean(volume), nblfet = uniqueN(log_feature)), keyby = event_type]
+event_type_info1 <- log_feature[event_type, allow.cartesian=TRUE][train][fault_severity == 1][, .(avgvolet = mean(volume), nblfet = uniqueN(log_feature)), keyby = event_type]
+event_type_info2 <- log_feature[event_type, allow.cartesian=TRUE][train][fault_severity == 2][, .(avgvolet = mean(volume), nblfet = uniqueN(log_feature)), keyby = event_type]
+joined_total <- merge(joined_total, event_type_info, by = "event_type")
+t8 <- joined_total[,.(avgvolet = sum(avgvolet), nblfet = sum(nblfet)), keyby = id]
 
-log_feature[joined_total, allow.cartesian=TRUE][log_feature == 'f82'][, uniqueN(id), by=fault_severity]
+
+ggplot(data = event_type_info)+
+  geom_boxplot(aes(x = as.factor(fault_severity), y = log(nblfet)))
+
+
+resource_type_info <- log_feature[resource_type, allow.cartesian=TRUE][train][, .(avgvolet = mean(volume), nblfet = uniqueN(log_feature)), by = .(resource_type, fault_severity)]
+resource_type_info0 <- log_feature[resource_type, allow.cartesian=TRUE][train][fault_severity == 0][, .(avgvolet = mean(volume), nblfet = uniqueN(log_feature)), keyby = resource_type]
+resource_type_info1 <- log_feature[resource_type, allow.cartesian=TRUE][train][fault_severity == 1][, .(avgvolet = mean(volume), nblfet = uniqueN(log_feature)), keyby = resource_type]
+resource_type_info2 <- log_feature[resource_type, allow.cartesian=TRUE][train][fault_severity == 2][, .(avgvolet = mean(volume), nblfet = uniqueN(log_feature)), keyby = resource_type]
+joined_total <- merge(joined_total, resource_type_info, by = "resource_type")
+t8 <- joined_total[,.(avgvolet = sum(avgvolet), nblfet = sum(nblfet)), keyby = id]
+
+
+ggplot(data = resource_type_info)+
+  geom_boxplot(aes(x = as.factor(fault_severity), y = log(avgvolet)))
+
 

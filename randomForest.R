@@ -1,12 +1,13 @@
 # svm
 library(caret)
 
-#source('~/datascience/challenges/telstra/base.R')
+source('~/datascience/challenges/telstra/base.R')
+source('~/datascience/challenges/telstra/utils.R')
 
 genererSubmission <- F
 
-x <- train.set.mat
-y <- as.factor(paste0("X",train.wide$fault_severity))
+x <- xtrain
+y <- as.factor(paste0("X",ytrain))
 
 tr <- trainControl(
   method = "cv", 
@@ -31,13 +32,14 @@ notify_android(
   event = "Random Forest Model finished", 
   msg = paste("Minimal CV mlogloss : ", min(rf_model$results$mlogloss)))
 
-if (genererSubmission) {
-  pred.rf <- predict(rf_model, test.set.mat, type="prob")
-  output.rf <- data.frame(
-    id = test$id,
-    predict_0 = pred[,1],
-    predict_1 = pred[,2],
-    predict_2 = pred[,3]
+
+pred.rf <- predict(rf_model, xtest, type="prob")
+output.rf <- data.frame(
+  id = test.id,
+  predict_0 = pred.rf[,1],
+  predict_1 = pred.rf[,2],
+  predict_2 = pred.rf[,3]
   )
+if (genererSubmission) {
   write.csv(output.rf, paste(sep = "-", format(Sys.time(), "%Y%m%d.%H%M"), "rf-submission.csv"), row.names = F, quote = F)
 }
