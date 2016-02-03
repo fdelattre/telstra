@@ -6,8 +6,8 @@ library(doMC)
 library(caret)
 
 #
-remove0cols <- F
-writeFiles <- F
+remove0cols <- T
+writeFiles <- T
 computeFeatures <- T
 computeManualInteractions <- T
 #
@@ -160,7 +160,7 @@ if(remove0cols){
 #retrait des colonnes ayant essentiellement des 0
   n <- length(removecols)
   counts <- apply(total.wide, 2, sum)
-  cols2remove <- names(counts[counts <= 2])
+  cols2remove <- names(counts[counts == 0])
   n2 <- length(cols2remove)
   writeLines(paste(n2, "columns removed", sep = " "))
   removecols <- setdiff(cols2remove, "fault_severity")
