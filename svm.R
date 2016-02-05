@@ -3,31 +3,31 @@
 source('~/datascience/challenges/telstra/base.R')
 source('~/datascience/challenges/telstra/utils.R')
 
-x <- xtrain[folds$Fold2,]
-y <- as.factor(paste0("X",ytrain[folds$Fold2]))
+x <- xtrain
+y <- as.factor(paste0("X",ytrain))
 
 tr <- trainControl(
   method = "cv", 
   number = 10, 
   classProbs = TRUE, 
-  summaryFunction = mc_logloss,
+  summaryFunction = mnlogloss,
   allowParallel = T)
 
 tgr <- expand.grid(
-  C = 1e+6,
+  C = seq(5000,10000,1000),
   sigma = 1e-5
 )
 
 svm_model <- caret::train(x, y, 
                           method = "svmRadial", 
-                          metric = "mlogloss",
+                          metric = "logLoss",
                           maximize = F,
                           trControl = tr,
                           tuneGrid = tgr)
 
 notify_android(
   event = "SVM Model finished", 
-  msg = paste("Minimal CV mlogloss : ", min(svm_model$results$mlogloss)))
+  msg = paste("Minimal CV mlogloss : ", min(svm_model$results$logLoss)))
 
 # Matrice de confusion sur le fold2
 xval <- xtrain[folds$Fold1,]

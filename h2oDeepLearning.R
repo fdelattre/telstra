@@ -14,8 +14,8 @@
 library(h2o)
 localH2O = h2o.init(nthreads = 6)
 
-source('~/datascience/challenges/telstra/base.R')
-source('~/datascience/challenges/telstra/utils.R')
+# source('~/datascience/challenges/telstra/base.R')
+# source('~/datascience/challenges/telstra/utils.R')
 
 train_file <- "train.csv"
 test_file <- "test.csv"
@@ -33,8 +33,8 @@ cv.deepl <- h2o.deeplearning(
   distribution = "multinomial",
   training_frame = train,
   activation = "RectifierWithDropout",
-  input_dropout_ratio = 0.8,
-  nfolds = 10,
+  input_dropout_ratio = 0.3,
+  nfolds = 5,
   stopping_metric = "logloss",
   hidden = c(300, 300, 300),
   epochs = 10,

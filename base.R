@@ -5,11 +5,14 @@ library(doMC)
 library(caret)
 
 #
-remove0cols <- F
-writeFiles <- F
+remove0cols <- T
+writeFiles <- T
 computeFeatures <- T
 computeManualInteractions <- T
 groupCardinalities <- T
+
+log_feature_rarityThreshold <- 10
+event_type_rarity_threshold <- 5
 #
 
 source('~/datascience/challenges/telstra/utils.R')
@@ -28,7 +31,7 @@ severity_type <-
   fread("~/datascience/challenges/telstra/data/severity_type.csv") %>% setkey(id)
 
 
-log_feature[, ":="(log_feature = makeReadable(log_feature))]
+log_feature[, ":="(numlf = makeNumeric(log_feature), log_feature = makeReadable(log_feature))]
 event_type[, ":="(event_type = makeReadable(event_type))]
 resource_type[, ":="(resource_type = makeReadable(resource_type))]
 severity_type[, ":="(severity_type = makeReadable(severity_type))]
@@ -42,14 +45,13 @@ test[, ":="(numloc = makeNumeric(location),
 total <- rbind(train, test)%>%setkey("id")
 
 if(groupCardinalities){
-  log_feature_rarityThreshold <- 10
-  event_type_rarity_threshold <- 20
   #LF reduction
   rare_lf <- log_feature[total][,.N, by=log_feature][N<=log_feature_rarityThreshold][,log_feature]
   log_feature$log_feature[log_feature$log_feature%in%rare_lf] <- "rare_lf"
   
   rare_et <- event_type[total][,.N, by=event_type][N<=event_type_rarity_threshold][,event_type]
   event_type$event_type[event_type$event_type%in%rare_et] <- "rare_et"
+  rm(list=c("rare_lf", "rare_et"))
 }
 
 if(computeFeatures){
@@ -77,8 +79,17 @@ if(computeFeatures){
   
   location_info_total <- t1[t2][t3][t4][t5][t6][t7]
   
+  # tests sur les log features en temps que numérique moyenne/id, somme/id, etc
+  lf_info <- log_feature[total][,.(
+    sumlf = sum(numlf), 
+    avglf = mean(numlf), 
+    sdlf = ifelse(is.na(sd(numlf)), 0, sd(numlf)),
+    minlf = min(numlf),
+    maxlf = max(numlf),
+    sqrtlf = sum(sqrt(numlf))),by=id]
+  
+  total <- total[lf_info]
   total <- merge(total, location_info_total, by = "location")
-  rm(list = c("location_info_total",paste0("t", 1:7)))
 }
 setkeyv(total[,":="(location=NULL)], c("id", "fault_severity"))
 
@@ -89,11 +100,19 @@ if(length(na.ids) > 0)
 ####################################
 # dcast des data pour avoir une ligne par id
 
+# total_lf_volume  <- dcast(
+#   log_feature[total],
+#   id + fault_severity ~ log_feature,
+#   value.var = list("volume", "log_feature"),
+#   fun = list(sum, length)
+# )
+
+# on garde uniquement le volume
 total_lf_volume  <- dcast(
   log_feature[total],
   id + fault_severity ~ log_feature,
-  value.var = list("volume", "log_feature"),
-  fun = list(sum, length)
+  value.var = "volume",
+  fun = sum
 )
 
 total_et <-
@@ -115,41 +134,28 @@ total.wide <-
 if(computeManualInteractions){
   total.wide[,":="(
 
-    som_vol_feat = volume_sum_f82 + volume_sum_f203 + volume_sum_f71 + volume_sum_f193 + volume_sum_f80,
-    som_vol_feat_c0 = volume_sum_f313 + volume_sum_f233 + volume_sum_f315,
-    som_vol_feat_c1 = volume_sum_f82 + volume_sum_f203 + volume_sum_f170,
-    som_vol_feat_c2 = volume_sum_f71 + volume_sum_f193 + volume_sum_f80,
+    som_vol_test = f203 + f312 + f232,
     
-    xor_feat = as.numeric(log_feature.1_length_f82 | log_feature.1_length_f203 | log_feature.1_length_f71 | log_feature.1_length_f193 | log_feature.1_length_f80),
-    xor_feat_c0 = as.numeric(log_feature.1_length_f313 | log_feature.1_length_f233 | log_feature.1_length_f315),
-    xor_feat_c1 = as.numeric(log_feature.1_length_f82 | log_feature.1_length_f203 | log_feature.1_length_f170),
-    xor_feat_c2 = as.numeric(log_feature.1_length_f71 | log_feature.1_length_f193 | log_feature.1_length_f80),
-    
-    and_feat_c0 = as.numeric(log_feature.1_length_f313 & log_feature.1_length_f233 & log_feature.1_length_f315),
-    and_feat_c1 = as.numeric(log_feature.1_length_f82 & log_feature.1_length_f203 & log_feature.1_length_f170),
-    and_feat_c2 = as.numeric(log_feature.1_length_f71 & log_feature.1_length_f193 & log_feature.1_length_f80))]
+    som_vol_feat = f82 + f203 + f71 + f193 + f80,
+    som_vol_feat_c0 = f313 + f233 + f315,
+    som_vol_feat_c1 = f82 + f203 + f170,
+    som_vol_feat_c2 = f71 + f193 + f80 ) ]
 }
+    
+#     xor_feat = as.numeric(log_feature.1_length_f82 | log_feature.1_length_f203 | log_feature.1_length_f71 | log_feature.1_length_f193 | log_feature.1_length_f80),
+#     xor_feat_c0 = as.numeric(log_feature.1_length_f313 | log_feature.1_length_f233 | log_feature.1_length_f315),
+#     xor_feat_c1 = as.numeric(log_feature.1_length_f82 | log_feature.1_length_f203 | log_feature.1_length_f170),
+#     xor_feat_c2 = as.numeric(log_feature.1_length_f71 | log_feature.1_length_f193 | log_feature.1_length_f80),
+#     
+#     and_feat_c0 = as.numeric(log_feature.1_length_f313 & log_feature.1_length_f233 & log_feature.1_length_f315),
+#     and_feat_c1 = as.numeric(log_feature.1_length_f82 & log_feature.1_length_f203 & log_feature.1_length_f170),
+#     and_feat_c2 = as.numeric(log_feature.1_length_f71 & log_feature.1_length_f193 & log_feature.1_length_f80))
+
 
 
 ######################################################################################
-
-removecols <- names(total.wide)
-if(remove0cols){
-  
-#retrait des colonnes ayant essentiellement des 0
-  n <- length(removecols)
-  counts <- apply(total.wide, 2, sum)
-  cols2remove <- names(counts[counts == 0])
-  n2 <- length(cols2remove)
-  writeLines(paste(n2, "columns removed", sep = " "))
-  removecols <- setdiff(cols2remove, "fault_severity")
-  train.wide <- total.wide[fault_severity != -1,-c(removecols, "id"), with = FALSE]
-  test.wide <- total.wide[fault_severity == -1,-c(removecols, "id"), with = FALSE]
-} else{
-  train.wide <- total.wide[fault_severity != -1,-"id", with = FALSE]
-  test.wide <- total.wide[fault_severity == -1,-"id", with = FALSE]
-}
-
+train.wide <- total.wide[fault_severity != -1,-"id", with = FALSE]
+test.wide <- total.wide[fault_severity == -1,-"id", with = FALSE]
 
 # write files with train and test
 if(writeFiles){
@@ -167,4 +173,9 @@ names(xtest) <- setdiff(names(test.wide), "fault_severity")
 test.id <- test$id
 
 # séparer le train set en 2 pour le blending
-folds <- createFolds(train.wide$fault_severity, k = 2)
+folds <- createFolds(train.wide$fault_severity, k = 3)
+
+writeLines("Cleaning up...")
+rm(list=c("na.ids", "total.wide", "total_et", "total_rt", "total_st", 
+          "total_lf_volume", "train.wide", "test.wide", "total",
+          "location_info_total","joined_total", "lf_info", paste0("t", 1:7)))
