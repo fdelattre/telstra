@@ -1,15 +1,16 @@
-source('~/datascience/challenges/telstra/base.R')
+#source('~/datascience/challenges/telstra/base.R')
 source('~/datascience/challenges/telstra/utils.R')
 
 library(xgboost)
 
 set.seed(123456)
-verboseXgboost <- T
+verboseXgboost <- F
 genererSubmission <- F
-notifyAndroid <- F
+notifyAndroid <- T
 CVonly <- F
 cat("Starting xgboost....\n")
 
+#dtrain <- xgb.DMatrix(data = xtrain[folds$Fold1,], label = ytrain[folds$Fold1])
 dtrain <- xgb.DMatrix(data = xtrain, label = ytrain)
 
 registerDoMC(cores = 6)
@@ -26,7 +27,7 @@ xgboost.first <- xgb.cv(
   data = dtrain,
   params = xgparams.tree,
   nrounds = 1000,
-  nfold = 10,
+  nfold = 3,
   metrics = "mlogloss",
   verbose = verboseXgboost,
   print.every.n = 200
@@ -34,7 +35,7 @@ xgboost.first <- xgb.cv(
 
 cat("xVal mlogloss : ", min(xgboost.first$test.mlogloss.mean),"\n")
 
-if(notifyAndroid <- F){
+if(notifyAndroid){
   notify_android(
     event = "Xgboost cross validation finished",
     msg = paste("Minimum xVal mlogloss : ", min(xgboost.first$test.mlogloss.mean))
@@ -51,7 +52,6 @@ if(!CVonly)
   )
   writeLines("Computing importance...")
   imp <- xgb.importance(feature_names = names(xtrain), model = xgboost.model)
-  
   
   if (genererSubmission) {
     

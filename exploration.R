@@ -3,6 +3,8 @@ library(magrittr)
 library(stringr)
 library(ggplot2)
 
+source('utils.R')
+
 train <- fread("~/datascience/challenges/telstra/data/train.csv")%>%setkey(id)
 test <- fread("~/datascience/challenges/telstra/data/test.csv")%>%setkey(id)
 sample_submission <- fread("~/datascience/challenges/telstra/data/sample_submission.csv")%>%setkey(id)
@@ -10,16 +12,6 @@ log_feature <- fread("~/datascience/challenges/telstra/data/log_feature.csv")%>%
 event_type <- fread("~/datascience/challenges/telstra/data/event_type.csv")%>%setkey(id)
 resource_type <- fread("~/datascience/challenges/telstra/data/resource_type.csv")%>%setkey(id)
 severity_type <- fread("~/datascience/challenges/telstra/data/severity_type.csv")%>%setkey(id)
-
-# réduction de la longueur des libellés
-makeReadable <- function(x){
-  num <- sapply(strsplit(x, " "), `[`, 2)
-  c <- str_sub(x, 1, 1)
-  return(paste0(c,num))}
-
-makeNumeric <- function(x){
-  num <- sapply(strsplit(x, " "), `[`, 2)
-  return(as.numeric(num))}
 
 log_feature[, log_feature := makeReadable(log_feature)]
 event_type[, ":="(numet = makeNumeric(event_type), event_type = makeReadable(event_type))]
@@ -29,14 +21,48 @@ train[, ":="(numloc = makeNumeric(location), location = makeReadable(location),
              fault_present = ifelse(fault_severity == 0,0,1))]
 test[, ":="(numloc = makeNumeric(location), location = makeReadable(location), fault_severity = -1, fault_present = -1)]
 
-
 total <- rbind(train, test)%>%setkey(id)
+# comparaison train / test
+
+train_lf <- unique(log_feature[train]$log_feature)
+test_lf <- unique(log_feature[test]$log_feature)
+train_lf_not_in_test <- train_lf[which(!is.element(train_lf, test_lf))]
+test_lf_not_in_train <- test_lf[which(!is.element(test_lf, train_lf))]
+log_feature[total][,.N, by=log_feature][order(N, decreasing = T)][N==1]
+log_feature[test][,.N, by=log_feature][order(N, decreasing = T)][log_feature%in%test_lf_not_in_train]
+log_feature[test][,sum(volume), by=log_feature][order(N, decreasing = T)][log_feature%in%test_lf_not_in_train]
+
+# ==> 331 lf dans le train
+# ==> 335 lf dans le test
+# ==> 51  lf du jeu de train ne figurent pas dans le jeu de test ==> supprimer ces lf du jeu de train
+# ==> 55  lf du jeu de test ne figurent pas dans le jeu de train 
+#    ==> les remplacer par les lf présentes similaires en terme de qté ?
+#    ==> les remplacer par les lf présentes similaires en terme de volume ?
+# ==> 85  lf avec un seul unique id  ==> les regrouper en rare_lf
+# ==> 33  lf avec 2 id ==> rares ?
+# ==> 28  lf avec 3 id ==> rares ?
+
+train_et <- unique(event_type[train]$event_type)
+test_et <- unique(event_type[test]$event_type)
+train_et_not_in_test <- train_et[which(!is.element(train_et, test_et))]
+test_et_not_in_train <- test_et[which(!is.element(test_et, train_et))]
+event_type[train][,.N, by=event_type][order(N, decreasing = T)][N <= 5]
+# ==> 4 event_types du jeu de test ne figurent pas dans le jeu de train ==> les remplacer
+# ==> 11 event_types avec un count < 5
+
+train_rt <- unique(resource_type[train]$resource_type)
+test_rt <- unique(resource_type[test]$resource_type)
+train_rt_not_in_test <- train_rt[which(!is.element(train_rt, test_rt))]
+test_rt_not_in_train <- test_rt[which(!is.element(test_rt, train_rt))]
+resource_type[train][,uniqueN(id), by=resource_type][order(V1, decreasing = T)][,sum(V1)]
+# ==> pas de différences entre train et test
+# ==> r8 et r2 présents sur plus de 7800 ids
+# ==> r5 est plus rare
+
+
 joined_train <- log_feature[resource_type][event_type, allow.cartesian = TRUE][severity_type][train]
 joined_test <- log_feature[resource_type][event_type, allow.cartesian = TRUE][severity_type][test]
 
-
-# Log_features
-significant_log_feature <- log_feature[train][,.N, by = log_feature][N > 100, log_feature]
 
 
 ggplot(data = log_feature[train][log_feature%in%significant_log_feature])+

@@ -3,8 +3,8 @@
 source('~/datascience/challenges/telstra/base.R')
 source('~/datascience/challenges/telstra/utils.R')
 
-x <- xtrain
-y <- as.factor(paste0("X",ytrain))
+x <- xtrain[folds$Fold2,]
+y <- as.factor(paste0("X",ytrain[folds$Fold2]))
 
 tr <- trainControl(
   method = "cv", 
@@ -28,6 +28,12 @@ svm_model <- caret::train(x, y,
 notify_android(
   event = "SVM Model finished", 
   msg = paste("Minimal CV mlogloss : ", min(svm_model$results$mlogloss)))
+
+# Matrice de confusion sur le fold2
+xval <- xtrain[folds$Fold1,]
+yval <- as.factor(paste0("X",ytrain[folds$Fold1]))
+pred.rf.class <- predict(rf_model, xval)
+confusionMatrix(yval, pred.rf.class)
 
 pred.svm <- predict(svm_model, xtest, type = "prob")
 

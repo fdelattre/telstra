@@ -32,7 +32,7 @@ cv.deepl <- h2o.deeplearning(
   y,
   distribution = "multinomial",
   training_frame = train,
-  activation = "Rectifier",
+  activation = "RectifierWithDropout",
   input_dropout_ratio = 0.8,
   nfolds = 10,
   stopping_metric = "logloss",

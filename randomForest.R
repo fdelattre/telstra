@@ -6,32 +6,36 @@ source('~/datascience/challenges/telstra/utils.R')
 
 genererSubmission <- F
 
+# x <- xtrain[folds$Fold2,]
+# y <- as.factor(paste0("X",ytrain[folds$Fold2]))
+
 x <- xtrain
 y <- as.factor(paste0("X",ytrain))
 
 tr <- trainControl(
   method = "cv", 
-  number = 10, 
+  number = 3, 
   classProbs = TRUE, 
   summaryFunction = mc_logloss,
   allowParallel = T)
-
-tgr <- expand.grid(
-  #mtry = seq(40,80, by=10)
-  mtry = 260
-)
 
 rf_model <- caret::train(x, y, 
                           method = "rf", 
                           metric = "mlogloss",
                           maximize = F,
                           trControl = tr,
-                          tuneGrid = tgr )
+                          strata = c(300, 300, 300),
+                          ntree = 800)
 
 notify_android(
   event = "Random Forest Model finished", 
   msg = paste("Minimal CV mlogloss : ", min(rf_model$results$mlogloss)))
 
+# Matrice de confusion sur le fold2
+# xval <- xtrain[folds$Fold1,]
+# yval <- as.factor(paste0("X",ytrain[folds$Fold1]))
+# pred.rf.class <- predict(rf_model, xval)
+# confusionMatrix(yval, pred.rf.class)
 
 pred.rf <- predict(rf_model, xtest, type="prob")
 output.rf <- data.frame(
