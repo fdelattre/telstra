@@ -96,7 +96,7 @@ t7 <- joined_total[,.(rtstcomb = uniqueN(paste(severity_type, resource_type, sep
 
 location_info_total <- t1[t2][t3][t4]#[t5][t6][t7]#[t8]
 
-total <- total[lfnums][etnums][rtnums]
+total <- total[lfnums][etnums][rtnums][impLf]
 
 
 total <- merge(total, location_info_total, by = "location")
