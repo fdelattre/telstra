@@ -3,22 +3,26 @@ library(xgboost)
 set.seed(123456)
 verboseXgboost <- F
 genererSubmission <- F
-notifyAndroid <- T
-CVonly <- F
-importance <- F
-cat("Starting xgboost....\n")
+notifyAndroid <- F
+CVonly <- T
+importance <- T
 
-# dtrain <- xgb.DMatrix(data = xtrain[folds$Fold1,], label = ytrain[folds$Fold1])
-# xtest <- xtrain[folds$Fold3,]
-# ytest <- test.id[folds$Fold3]
-dtrain <- xgb.DMatrix(data = xtrain, label = ytrain)
+if(onFold){
+  writeLines(paste("Starting xgboost on a fold1....",nrow(xtrain[folds$Resample1,]), " lines" ))
+  dtrain <- xgb.DMatrix(data = xtrain[folds$Resample1,], label = ytrain[folds$Resample1])
+  xtest <- xtrain[-folds$Resample1,]
+  test.id <- test.id[-folds$Resample1]
+}else{
+  writeLines("Starting xgboost on full train...")
+  dtrain <- xgb.DMatrix(data = xtrain, label = ytrain)
+}
 
 registerDoMC(cores = 6)
 
 xgparams.tree <- list(
   objective = "multi:softprob",
   num_class = 3,
-  colsample_bytree = 0.5,
+  colsample_bytree = 0.3,
   max.depth = 8,
   eta = 0.05
 )
@@ -52,12 +56,6 @@ if(!CVonly)
 
   pred.xgboost <- matrix(apply(pred.loop, MARGIN = 1, mean), ncol = 3, byrow = T)
   
-  output.xgboost <- data.frame(
-    id = test.id,
-    predict_0 = pred.xgboost[,1],
-    predict_1 = pred.xgboost[,2],
-    predict_2 = pred.xgboost[,3]
-  )
 
 if(importance){
   writeLines("Computing importance...")
@@ -66,6 +64,12 @@ if(importance){
   
   if (genererSubmission) {
     cat("Generating Submission...\n")
+    output.xgboost <- data.frame(
+      id = test.id,
+      predict_0 = pred.xgboost[,1],
+      predict_1 = pred.xgboost[,2],
+      predict_2 = pred.xgboost[,3]
+    )
     write.csv(output.xgboost, paste(sep = "-", format(Sys.time(), "%Y%m%d.%H%M"), "submission.csv"), row.names = F, quote = F)
   }
 }

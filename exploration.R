@@ -247,3 +247,10 @@ ggplot(data = resource_type_info)+
   geom_boxplot(aes(x = as.factor(fault_severity), y = log(avgvolet)))
 
 
+ggplot(data = severity_type[train])+
+  geom_bar(aes(x = numst, fill = as.factor(fault_severity)))
+
+
+
+ggplot(data = log_feature[train])+
+  geom_hex(aes(x = numlf, y = numloc, fill = as.factor(fault_severity)))

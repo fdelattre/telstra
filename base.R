@@ -6,12 +6,12 @@ library(caret)
 
 #
 remove0cols <- T
-writeFiles <- T
+writeFiles <- F
 computeFeatures <- T
 computeManualInteractions <- T
 groupCardinalities <- T
 
-log_feature_rarityThreshold <- 10
+log_feature_rarityThreshold <- 50
 event_type_rarity_threshold <- 5
 #
 
@@ -32,9 +32,9 @@ severity_type <-
 
 
 log_feature[, ":="(numlf = makeNumeric(log_feature), log_feature = makeReadable(log_feature))]
-event_type[, ":="(event_type = makeReadable(event_type))]
+event_type[, ":="(numet = makeNumeric(event_type), event_type = makeReadable(event_type))]
 resource_type[, ":="(resource_type = makeReadable(resource_type))]
-severity_type[, ":="(severity_type = makeReadable(severity_type))]
+severity_type[, ":="(numst = makeNumeric(severity_type), severity_type = makeReadable(severity_type))]
 
 
 train[, ":="(numloc = makeNumeric(location),
@@ -85,10 +85,16 @@ if(computeFeatures){
     avglf = mean(numlf), 
     sdlf = ifelse(is.na(sd(numlf)), 0, sd(numlf)),
     minlf = min(numlf),
-    maxlf = max(numlf),
-    sqrtlf = sum(sqrt(numlf))),by=id]
+    maxlf = max(numlf)),by=id]
   
-  total <- total[lf_info]
+  # moyenne numerique de l'event_type * severity_type
+  etst <- event_type[, .(
+    id, 
+    minumet = min(numet), 
+    maxnumet = max(numet), 
+    avgnumet = mean(numet)), by=id][severity_type][total][,.(et.st = avgnumet*numst),by=id]
+  
+  total <- total[lf_info][etst]
   total <- merge(total, location_info_total, by = "location")
 }
 setkeyv(total[,":="(location=NULL)], c("id", "fault_severity"))
@@ -134,24 +140,13 @@ total.wide <-
 if(computeManualInteractions){
   total.wide[,":="(
 
-    som_vol_test = f203 + f312 + f232,
+    som_vol_test = (f203 * f312 * f232 * f170),
     
-    som_vol_feat = f82 + f203 + f71 + f193 + f80,
-    som_vol_feat_c0 = f313 + f233 + f315,
-    som_vol_feat_c1 = f82 + f203 + f170,
-    som_vol_feat_c2 = f71 + f193 + f80 ) ]
+    som_vol_feat = (f82 + f203 + f71 + f193 + f80),
+    som_vol_feat_c0 = (f313 + f233 + f315),
+    som_vol_feat_c1 = (f82 + f203 + f170),
+    som_vol_feat_c2 = (f71 + f193 + f80) ) ]
 }
-    
-#     xor_feat = as.numeric(log_feature.1_length_f82 | log_feature.1_length_f203 | log_feature.1_length_f71 | log_feature.1_length_f193 | log_feature.1_length_f80),
-#     xor_feat_c0 = as.numeric(log_feature.1_length_f313 | log_feature.1_length_f233 | log_feature.1_length_f315),
-#     xor_feat_c1 = as.numeric(log_feature.1_length_f82 | log_feature.1_length_f203 | log_feature.1_length_f170),
-#     xor_feat_c2 = as.numeric(log_feature.1_length_f71 | log_feature.1_length_f193 | log_feature.1_length_f80),
-#     
-#     and_feat_c0 = as.numeric(log_feature.1_length_f313 & log_feature.1_length_f233 & log_feature.1_length_f315),
-#     and_feat_c1 = as.numeric(log_feature.1_length_f82 & log_feature.1_length_f203 & log_feature.1_length_f170),
-#     and_feat_c2 = as.numeric(log_feature.1_length_f71 & log_feature.1_length_f193 & log_feature.1_length_f80))
-
-
 
 ######################################################################################
 train.wide <- total.wide[fault_severity != -1,-"id", with = FALSE]
@@ -173,7 +168,10 @@ names(xtest) <- setdiff(names(test.wide), "fault_severity")
 test.id <- test$id
 
 # séparer le train set en 2 pour le blending
-folds <- createFolds(train.wide$fault_severity, k = 3)
+# folds <- createFolds(train.wide$fault_severity, k = 3)
+# 80% train + 20% pour valider le stacking
+if(onFold) folds <- createDataPartition(train.wide$fault_severity, p = 0.8)
+
 
 writeLines("Cleaning up...")
 rm(list=c("na.ids", "total.wide", "total_et", "total_rt", "total_st", 

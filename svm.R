@@ -1,6 +1,6 @@
 # svm
 
-source('~/datascience/challenges/telstra/base.R')
+#source('~/datascience/challenges/telstra/base.R')
 source('~/datascience/challenges/telstra/utils.R')
 
 x <- xtrain
@@ -8,13 +8,13 @@ y <- as.factor(paste0("X",ytrain))
 
 tr <- trainControl(
   method = "cv", 
-  number = 10, 
+  number = 5, 
   classProbs = TRUE, 
-  summaryFunction = mnlogloss,
+  summaryFunction = mnLogLoss,
   allowParallel = T)
 
 tgr <- expand.grid(
-  C = seq(5000,10000,1000),
+  C = 1e4,
   sigma = 1e-5
 )
 
@@ -22,8 +22,9 @@ svm_model <- caret::train(x, y,
                           method = "svmRadial", 
                           metric = "logLoss",
                           maximize = F,
+                          preProcess = c("center", "scale"),
                           trControl = tr,
-                          tuneGrid = tgr)
+                          tuneGrid = tgr)#,class.weights = c(X0 = 0.3, X1 = 0.2, X2 = 0.5))
 
 notify_android(
   event = "SVM Model finished", 
